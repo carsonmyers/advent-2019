@@ -24,7 +24,7 @@ int main(int argc, char *argv[]) {
 }
 
 int *read_numbers(int len, char *numbers[]) {
-    int *results = (int*)malloc(len * sizeof(int));
+    int *results = (int *)malloc(len * sizeof(int));
     for (int i = 0; i < len; i++) {
         results[i] = atoi(numbers[i]);
     }
