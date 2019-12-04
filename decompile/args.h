@@ -8,8 +8,7 @@ struct program_args {
 	bool hex_addressing;
 };
 
-struct program_args *new_program_args();
-int parse_args(struct program_args *out, int argc, char *argv[]);
+int parse_args(struct program_args **out, int argc, char *argv[]);
 int parse_arg(struct program_args *out, int *current_arg, int argc, char *argv[]);
 int parse_switch(struct program_args *out, int *current_arg, int argc, char *argv[]);
 void split_value(char **arg, char **value);

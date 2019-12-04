@@ -3,29 +3,58 @@
 #include <string.h>
 #include "args.h"
 
-struct program_args *new_program_args() {
-	struct program_args *args = malloc(sizeof(struct program_args));
-	memset((void *)args, 0, sizeof(struct program_args));
-	return args;
-}
+int parse_args(struct program_args **out, int argc, char *argv[]) {
+	*out = malloc(sizeof(struct program_args));
+	if (out == NULL) {
+		fprintf(stderr, "Out of memory\n");
+		return 1;
+	}
 
-int parse_args(struct program_args *out, int argc, char *argv[]) {
+	memset((void *)*out, 0, sizeof(struct program_args));
+
 	int current_arg = 1;
 	while (current_arg < argc) {
 		int args_left = argc - current_arg;
 		char **next_args = &argv[current_arg];
 
-		int result = parse_arg(out, &current_arg, args_left, next_args);
+		int result = parse_arg(*out, &current_arg, args_left, next_args);
 		if (result != 0) {
 			return result;
 		}
+	}
+
+	if ((*out)->input == NULL) {
+		fprintf(stderr, "No input file specified\n");
+		return 1;
+	}
+
+	if ((*out)->output == NULL) {
+		(*out)->output = malloc(strlen((*out)->input) + 2);
+
+		char *r = (*out)->input;
+		char *w = (*out)->output;
+		char *last_dot = NULL;
+		while (*r != 0) {
+			if (*r == '.') {
+				last_dot = w;
+			}
+
+			*w++ = *r++;
+		}
+
+		if (last_dot == NULL) {
+			last_dot = w;
+		}
+
+		last_dot[0] = '.';
+		last_dot[1] = 'a';
+		last_dot[2] = 0;
 	}
 
 	return 0;
 }
 
 int parse_arg(struct program_args *out, int *current_arg, int argc, char *argv[]) {
-	printf("parse arg %d: \"%s\"\n", *current_arg, argv[0]);
 
 	char *arg = argv[0];
 	if (arg[0] == '-') {
@@ -40,14 +69,13 @@ int parse_arg(struct program_args *out, int *current_arg, int argc, char *argv[]
 		}
 
 		out->input = arg;
-		current_arg++;
+		*current_arg += 1;
 	}
 
 	return 0;
 }
 
 int parse_switch(struct program_args *out, int *current_arg, int argc, char *argv[]) {
-	printf("parse switch: \"%s\"\n", argv[0]);
 	char *arg = argv[0];
 	int len = strlen(arg);
 	if (len <= 1) {
@@ -59,7 +87,6 @@ int parse_switch(struct program_args *out, int *current_arg, int argc, char *arg
 			return 0;
 		}
 
-		printf("long switch \"%s\"\n", &arg[2]);
 		char *value = NULL;
 		char *name = &arg[2];
 		split_value(&name, &value);
@@ -104,7 +131,6 @@ int parse_switch(struct program_args *out, int *current_arg, int argc, char *arg
 		}
 	} else {
 		for (int i = 1; i < len; i++) {
-			printf("short switch \"%c\"\n", arg[i]);
 			switch (arg[i]) {
 			case 'o':
 				if (out->output != NULL) {
@@ -139,9 +165,9 @@ int parse_switch(struct program_args *out, int *current_arg, int argc, char *arg
 				fprintf(stderr, "Invalid switch: %c\n", arg[i]);
 				return 1;
 			}
-
-			*current_arg += 1;
 		}
+
+		*current_arg += 1;
 	}
 
 	return 0;
@@ -149,15 +175,11 @@ int parse_switch(struct program_args *out, int *current_arg, int argc, char *arg
 
 void split_value(char **arg, char **value) {
 	char *r = *arg;
-	printf("split: ");
 	do {
-		printf("%c ", *r);
 		if (*r == '=') {
-			printf("/");
 			*r = 0;
-			*value = r;
+			*value = r + 1;
 			break;
 		}
 	} while (*r++ != 0);
-	printf("\n");
 }
