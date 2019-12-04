@@ -34,10 +34,11 @@ int load_file(struct file_data **out, char *filename) {
 	}
 	fclose(f);
 
-	(*out)->data_length = 256;
-	(*out)->program = malloc(sizeof(uint8_t) * (*out)->data_length);
-	if ((*out)->program == NULL) {
+	(*out)->buffer_length = 256;
+	(*out)->data = malloc(sizeof(uint8_t) * (*out)->data_length);
+	if ((*out)->data == NULL) {
 		free(data);
+		free(*out);
 		fprintf(stderr, "Out of memory\n");
 		return 1;
 	}
@@ -50,10 +51,11 @@ int load_file(struct file_data **out, char *filename) {
 
 		if (data[i] == ',') {
 			data[i] = 0;
-			int err = load_instruction(*out, &data[next_num]);
+			int err = load_int(*out, &data[next_num]);
 			if (err != 0) {
 				free(data);
-				free((*out)->program);
+				free((*out)->data);
+				free(*out);
 				return err;
 			}
 			next_num = -1;
@@ -61,10 +63,11 @@ int load_file(struct file_data **out, char *filename) {
 	}
 
 	if (next_num > 0 && data[next_num] != 0) {
-		int err = load_instruction(*out, &data[next_num]);
+		int err = load_int(*out, &data[next_num]);
 		if (err != 0) {
 			free(data);
-			free((*out)->program);
+			free((*out)->data);
+			free(*out);
 			return err;
 		}
 	}
@@ -72,35 +75,35 @@ int load_file(struct file_data **out, char *filename) {
 	return 0;
 }
 
-int load_instruction(struct file_data *f, char *input) {
-	int idx = f->program_length + 1;
-	if (idx == f->data_length) {
+int load_int(struct file_data *f, char *input) {
+	int idx = f->data_length + 1;
+	if (idx == f->buffer_length) {
 		int err = resize_file_data(f);
 		if (err != 0) {
 			return err;
 		}
 	}
 
-	f->program[idx] = atoi(input);
-	f->program_length++;
+	f->data[idx] = atoi(input);
+	f->data_length++;
 
 	return 0;
 }
 
 int resize_file_data(struct file_data *f) {
-	int *old_program = f->program;
+	int *old_data = f->data;
 
-	int next_size = f->data_length * 2;
-	f->program = malloc(next_size * sizeof(int));
-	if (f->program == NULL) {
+	int next_size = f->buffer_length * 2;
+	f->data = malloc(next_size * sizeof(int));
+	if (f->data == NULL) {
 		fprintf(stderr, "Out of memory\n");
 		return 1;
 	}
 
-	for (int i = 0; i < f->program_length; i++) {
-		f->program[i] = old_program[i];
+	for (int i = 0; i < f->data_length; i++) {
+		f->data[i] = old_data[i];
 	}
 
-	free(old_program);
+	free(old_data);
 	return 0;
 }
